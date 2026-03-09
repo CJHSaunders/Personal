@@ -1,0 +1,999 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Twisty Twirly Joke Machine</title>
+    <style>
+        body {
+            font-family: 'Comic Sans MS', cursive, sans-serif;
+            background: linear-gradient(135deg, #ff8c00 0%, #ff4500 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+        
+        .machine {
+            background: #fff;
+            border-radius: 30px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 800px;
+            width: 100%;
+        }
+        
+        h1 {
+            color: #764ba2;
+            text-align: center;
+            font-size: 2.5em;
+            margin-top: 0;
+        }
+        
+        .controls {
+            display: flex;
+            justify-content: space-around;
+            margin: 30px 0;
+            flex-wrap: wrap;
+        }
+        
+        /* Mobile and tablet font override */
+        @media (max-width: 1024px) {
+            body {
+                font-family: sans-serif;
+            }
+            
+            h1 {
+                font-family: 'Comic Sans MS', cursive, sans-serif;
+            }
+        }
+
+        .dial-container {
+            text-align: center;
+            margin: 20px;
+        }
+        
+        .dial-label {
+            font-size: 1.3em;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 15px;
+        }
+        
+        .dial {
+            width: 220px;
+            height: 220px;
+            border-radius: 50%;
+            background: radial-gradient(circle at 30% 30%, #e0e0e0, #888);
+            border: 8px solid #333;
+            position: relative;
+            cursor: grab;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3), inset 0 -5px 10px rgba(0,0,0,0.2);
+            transition: transform 0.1s;
+            user-select: none;
+            margin: 0 auto;
+        }
+        
+        .dial:hover {
+            box-shadow: 0 12px 35px rgba(0,0,0,0.4), inset 0 -5px 10px rgba(0,0,0,0.2);
+        }
+        
+        .dial:active {
+            transform: scale(0.95);
+        }
+        
+        .dial-center {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            background: #333;
+            border-radius: 50%;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            box-shadow: 0 3px 8px rgba(0,0,0,0.5);
+            z-index: 10;
+            pointer-events: none;
+        }
+        
+        .dial-pointer {
+            position: absolute;
+            width: 6px;
+            height: 70px;
+            background: linear-gradient(to bottom, #ff4444, #cc0000);
+            top: 30px;
+            left: 50%;
+            transform-origin: bottom center;
+            transform: translateX(-50%) rotate(0deg);
+            border-radius: 3px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+            transition: transform 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            z-index: 5;
+            pointer-events: none;
+        }
+        
+        .current-selection {
+            margin-top: 15px;
+            font-size: 1.4em;
+            color: #764ba2;
+            font-weight: bold;
+            min-height: 35px;
+        }
+        
+        .shoot-button {
+            width: 100%;
+            padding: 30px;
+            font-size: 2em;
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            font-weight: bold;
+            margin: 30px 0;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+            transition: all 0.2s;
+            text-transform: uppercase;
+        }
+        
+        .shoot-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 25px rgba(0,0,0,0.4);
+        }
+        
+        .shoot-button:active {
+            transform: translateY(1px);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        }
+        
+        .pipe-container {
+            position: relative;
+            height: 250px;
+            margin: 30px 0;
+            overflow: visible;
+        }
+        
+        .pipe-svg {
+            width: 100%;
+            height: 100%;
+            filter: drop-shadow(0 4px 8px rgba(0,0,0,0.3));
+        }
+        
+        .joke-paper {
+            position: absolute;
+            background: white;
+            padding: 15px 20px;
+            border-radius: 8px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.4);
+            font-size: 1.2em;
+            font-weight: bold;
+            border: 3px solid #764ba2;
+            z-index: 100;
+            offset-path: path('M 0,80 Q 100,20 200,60 T 400,100 Q 500,120 600,80 T 800,60');
+            offset-distance: 0%;
+        }
+        
+        @keyframes twistyPath {
+            0% {
+                offset-distance: 0%;
+                opacity: 0;
+                transform: scale(0.5) rotate(0deg);
+            }
+            10% {
+                opacity: 1;
+                transform: scale(1) rotate(45deg);
+            }
+            25% {
+                transform: scale(1.1) rotate(180deg);
+            }
+            50% {
+                transform: scale(0.9) rotate(360deg);
+            }
+            75% {
+                transform: scale(1.1) rotate(540deg);
+            }
+            90% {
+                opacity: 1;
+                transform: scale(1) rotate(720deg);
+            }
+            100% {
+                offset-distance: 100%;
+                opacity: 0;
+                transform: scale(0.5) rotate(900deg);
+            }
+        }
+        
+        .joke-paper.shooting {
+            animation: twistyPath 3s cubic-bezier(0.4, 0.0, 0.2, 1);
+        }
+        
+        .joke-display-container {
+            position: relative;
+            margin-top: 20px;
+        }
+        
+        .joke-display {
+            min-height: 180px;
+            background: linear-gradient(135deg, #fffacd 0%, #fff4a3 100%);
+            border-radius: 20px;
+            padding: 30px;
+            font-size: 1.6em;
+            text-align: center;
+            border: 5px dashed #f5576c;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: inset 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .speaker-button {
+            position: absolute;
+            bottom: 15px;
+            right: 15px;
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2em;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            transition: all 0.2s;
+            opacity: 0;
+            pointer-events: none;
+        }
+        
+        .speaker-button.visible {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        
+        .speaker-button:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.4);
+        }
+        
+        .speaker-button:active {
+            transform: scale(0.95);
+        }
+        
+        .speaker-button.speaking {
+            animation: pulse 1s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+
+        .dial-instruction {
+            font-size: 0.9em;
+            color: #666;
+            margin-top: 5px;
+            font-style: italic;
+        }
+        
+        .dial-icons {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+        
+        .dial-icon {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform-origin: 0 0;
+            font-size: 1.5em;
+            pointer-events: none;
+            z-index: 2;
+        }
+        
+        .dial-sectors {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            pointer-events: none;
+            opacity: 0.4;
+            z-index: 1;
+        }
+        
+        .selection-container {
+            text-align: center;
+            margin: 20px;
+        }
+        
+        .selection-label {
+            font-size: 1.3em;
+            font-weight: bold;
+            color: #764ba2;
+            margin-bottom: 15px;
+        }
+        
+        .buttons {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        
+        .button {
+            width: 120px;
+            height: auto;
+            padding: 10px;
+            border-radius: 15px;
+            border: 3px solid #333;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-size: 1em;
+            transition: transform 0.2s, box-shadow 0.2s;
+            user-select: none;
+        }
+        
+        .button:hover {
+            transform: scale(1.1);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+        }
+        
+        .button.selected {
+            border-color: #000;
+            border-width: 4px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.8);
+            transform: scale(1.05);
+        }
+        
+        .emoji {
+            font-size: 2em;
+        }
+        
+        .text {
+            font-size: 0.9em;
+            margin-top: 5px;
+            text-align: center;
+            color: #fff;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.7);
+        }
+    </style>
+</head>
+<body>
+    <div class="machine">
+        <h1>🎪 Twisty Twirly Joke Machine! 🎪</h1>
+        
+        <div class="controls">
+            <div class="selection-container">
+                <div class="selection-label">🎯 Choose a Topic</div>
+                <div class="buttons" id="topicButtons"></div>
+                <div class="current-selection" id="topicDisplay">Selected Topic: 🚽 Toilets</div>
+            </div>
+            
+            <div class="selection-container">
+                <div class="selection-label">🎭 Choose Joke Type</div>
+                <div class="buttons" id="typeButtons"></div>
+                <div class="current-selection" id="typeDisplay">Selected Type: Knock Knock</div>
+            </div>
+        </div>
+        
+        <button class="shoot-button" id="shootBtn">
+            💥 SHOOT THE JOKE! 💥
+        </button>
+        
+        <div class="pipe-container" id="pipeContainer">
+            <svg class="pipe-svg" viewBox="0 0 800 250" preserveAspectRatio="none">
+                <defs>
+                    <pattern id="pipePattern" x="0" y="0" width="30" height="30" patternUnits="userSpaceOnUse">
+                        <rect width="15" height="30" fill="#4CAF50"/>
+                        <rect x="15" width="15" height="30" fill="#45a049"/>
+                    </pattern>
+                    <filter id="pipeShadow">
+                        <feGaussianBlur in="SourceAlpha" stdDeviation="3"/>
+                        <feOffset dx="0" dy="3" result="offsetblur"/>
+                        <feComponentTransfer>
+                            <feFuncA type="linear" slope="0.5"/>
+                        </feComponentTransfer>
+                        <feMerge>
+                            <feMergeNode/>
+                            <feMergeNode in="SourceGraphic"/>
+                        </feMerge>
+                    </filter>
+                </defs>
+                
+                <path d="M 0,80 Q 100,20 200,60 T 400,100 Q 500,120 600,80 T 800,60" 
+                      stroke="url(#pipePattern)" 
+                      stroke-width="45" 
+                      fill="none" 
+                      stroke-linecap="round"
+                      filter="url(#pipeShadow)"/>
+                
+                <path d="M 0,80 Q 100,20 200,60 T 400,100 Q 500,120 600,80 T 800,60" 
+                      stroke="#2d6b2f" 
+                      stroke-width="50" 
+                      fill="none" 
+                      stroke-linecap="round"
+                      opacity="0.3"/>
+                
+                <path d="M 0,80 Q 100,20 200,60 T 400,100 Q 500,120 600,80 T 800,60" 
+                      stroke="rgba(255,255,255,0.3)" 
+                      stroke-width="20" 
+                      fill="none" 
+                      stroke-linecap="round"
+                      style="transform: translateY(-8px);"/>
+            </svg>
+        </div>
+        
+        <div class="joke-display-container">
+            <div class="joke-display" id="jokeDisplay">
+                Choose your topic and type, then push the button!
+            </div>
+            <button class="speaker-button" id="speakerBtn" aria-label="Read joke aloud">
+                🔊
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // ALL THE TOPICS
+        var topics = [
+            {name: "🚽 Toilets", key: "toilets"},
+            {name: "🐔 Chickens", key: "chickens"},
+            {name: "🚗 Cars", key: "cars"},
+            {name: "🐶 Animals", key: "animals"},
+            {name: "🍕 Food", key: "food"},
+            {name: "🎮 Games", key: "games"},
+            {name: "🌈 Weather", key: "weather"},
+            {name: "🦖 Dinosaurs", key: "dinosaurs"}
+        ];
+        
+        // ALL THE JOKE TYPES
+        var types = [
+            {name: "👊 Knock Knock", key: "knockknock"},
+            {name: "😄 Silly Pun", key: "pun"},
+            {name: "❓ Question", key: "question"},
+            {name: "🤸 Action Joke", key: "action"},
+            {name: "🤔 Riddle", key: "riddle"},
+            {name: "📖 Story Joke", key: "story"}
+        ];
+        
+        // Colors for buttons
+        const topicColors = ['#ff6b6b', '#ffa726', '#ffeb3b', '#66bb6a', '#42a5f5', '#ab47bc', '#ec407a', '#26c6da'];
+        const typeColors = ['#e91e63', '#9c27b0', '#673ab7', '#3f51b5', '#2196f3', '#00bcd4'];
+        
+        // Function to create buttons
+        function createButtons(containerId, items, colors, onClick) {
+            const container = document.getElementById(containerId);
+            items.forEach((item, index) => {
+                const button = document.createElement('div');
+                button.className = 'button';
+                const emoji = item.name.split(' ')[0];
+                const text = item.name.split(' ').slice(1).join(' ');
+                button.innerHTML = `<div class="emoji">${emoji}</div><div class="text">${text}</div>`;
+                button.style.background = colors[index];
+                button.addEventListener('click', () => onClick(index));
+                container.appendChild(button);
+            });
+        }
+        
+        // Function to update selected buttons
+        function updateSelected() {
+            document.querySelectorAll('#topicButtons .button').forEach((btn, i) => btn.classList.toggle('selected', i === currentTopic));
+            document.querySelectorAll('#typeButtons .button').forEach((btn, i) => btn.classList.toggle('selected', i === currentType));
+        }
+        
+        var currentTopic = 0;
+        var currentType = 0;
+        
+        // ALL THE JOKES!
+        var jokes = {
+            toilets: {
+                knockknock: [
+                    "Knock knock!<br>Who's there?<br>Interrupting toilet.<br>Interrupting toilet wh--<br>FLUSH! 🚽💦",
+                    "Knock knock!<br>Who's there?<br>Poo.<br>Poo who?<br>Poo-hoo! Don't cry, it's just a joke! 😂",
+                    "Knock knock!<br>Who's there?<br>Toilet.<br>Toilet who?<br>Toilet you a secret: I love jokes! 🚽🤫",
+                    "Knock knock!<br>Who's there?<br>Flush.<br>Flush who?<br>Flush are you doing? 🚽😄",
+                    "Knock knock!<br>Who's there?<br>Potty.<br>Potty who?<br>Potty training is fun! 🚽😊",
+                    "Knock knock!<br>Who's there?<br>Seat.<br>Seat who?<br>Seat down and enjoy the joke! 🚽🪑",
+                    "Knock knock!<br>Who's there?<br>Water.<br>Water who?<br>Water you waiting for? 🚽💧",
+                    "Knock knock!<br>Who's there?<br>Bathroom.<br>Bathroom who?<br>Bathroom for more jokes! 🚽🚪",
+                    "Knock knock!<br>Who's there?<br>Soap.<br>Soap who?<br>Soap-er fun! 🧼😄"
+                ],
+                pun: [
+                    "Why did the toilet paper roll down the hill?<br>To get to the bottom! 🧻",
+                    "What did one toilet say to the other?<br>You look flushed! 🚽😊",
+                    "Why did the toilet go to the party?<br>Because it was a potty mouth! 🚽🎉",
+                    "What's a toilet's favorite type of music?<br>Flush and roll! 🚽🎶",
+                    "Why did the toilet take a break?<br>It was feeling drained! 🚽😴",
+                    "What did the toilet say to the plumber?<br>You're my hero! 🚽🦸",
+                    "Why did the toilet go to school?<br>To learn how to flush properly! 🚽📚",
+                    "What's a toilet's favorite game?<br>Spin the bowl! 🚽🎡",
+                    "Why did the toilet laugh?<br>The joke was flush with humor! 🚽😂"
+                ],
+                question: [
+                    "Why can't you hear a toilet go to the bathroom?<br>Because the 'P' is silent! 🤫",
+                    "What's a toilet's favorite game?<br>Flush and seek! 🚽",
+                    "Why did the toilet take a nap?<br>It was feeling a bit flushed! 🚽😴",
+                    "What's a toilet's favorite snack?<br>Potty chips! 🚽🍟",
+                    "Why did the toilet go outside?<br>To get some fresh air! 🚽🌬️",
+                    "What's a toilet's favorite color?<br>Blue, like the water! 🚽💙",
+                    "Why did the toilet wear a hat?<br>To stay dry! 🚽🎩",
+                    "What's a toilet's favorite animal?<br>A potty goose! 🚽🦆",
+                    "Why did the toilet tell a story?<br>It had a lot of tales to flush! 🚽📖"
+                ],
+                action: [
+                    "🙌 Put your hands up high like a toilet lid!<br>Now SLAM them down and say FLUSH! 💦<br>(Make flushing sounds: WHOOOOSH!)",
+                    "✋ Hold your nose with one hand!<br>👋 Wave goodbye with the other!<br>Say: Bye bye, stinky! 🚽",
+                    "🚽 Pretend to sit on a toilet!<br>Now stand up and say: All done! 🚽😊",
+                    "💦 Make a splashing sound!<br>Say: Time for a bath! 🚽🛁",
+                    "🚽 Pretend to flush!<br>Make a big circle with your arms and say: Swirl! 🚽🌀",
+                    "🧻 Pretend to wipe!<br>Say: Clean and fresh! 🚽✨",
+                    "🚽 Hop on one foot!<br>Say: Potty dance! 🚽💃",
+                    "💧 Pretend to wash hands!<br>Say: Soap and water! 🚽🧼",
+                    "🚽 Spin around!<br>Say: Toilet tornado! 🚽🌪️"
+                ],
+                riddle: [
+                    "I have a seat but no legs, I flush but I'm not shy. What am I?<br>A toilet! 🚽",
+                    "What sits in the bathroom and gets smaller every day?<br>A bar of soap! 🧼",
+                    "What has a lid but no eyes?<br>A toilet! 🚽👀",
+                    "What goes up and down but never moves?<br>A toilet seat! 🚽⬆️⬇️",
+                    "What has water but no fish?<br>A toilet! 🚽🐟",
+                    "What can you sit on and read?<br>A toilet with a magazine! 🚽📖",
+                    "What has a handle you pull?<br>A toilet! 🚽🔧",
+                    "What makes a whoosh sound?<br>A flushing toilet! 🚽💨",
+                    "What do you use after washing hands?<br>A towel, but near the toilet! 🚽🧺"
+                ],
+                story: [
+                    "A toilet went to school and the teacher asked: 'What's 2+2?'<br>The toilet said: 'Number 2!' 🚽📚",
+                    "Once there was a royal toilet. Everyone called it... the THRONE! 👑🚽",
+                    "A toilet went to the beach and said: 'I'm feeling a bit sandy!' 🚽🏖️",
+                    "Once there was a toilet who loved to dance. It was a real potty dancer! 🚽💃",
+                    "A toilet went to the party and said: 'I'm the life of the flush!' 🚽🎉",
+                    "Once there was a toilet who could sing. It was a potty opera star! 🚽🎤",
+                    "A toilet went camping and said: 'I need to find a port-a-potty!' 🚽⛺",
+                    "Once there was a toilet who loved sports. It was a real potty athlete! 🚽⚽",
+                    "A toilet went to the movies and said: 'That was a flush hit!' 🚽🎥"
+                ]
+            },
+            chickens: {
+                knockknock: [
+                    "Knock knock!<br>Who's there?<br>Chicken.<br>Chicken who?<br>Chicken your pockets, I lost my keys! 🐔🔑",
+                    "Knock knock!<br>Who's there?<br>Bawk.<br>Bawk who?<br>No silly, chickens say BAWK BAWK! 🐔",
+                    "Knock knock!<br>Who's there?<br>Egg.<br>Egg who?<br>Egg-cited to tell a joke! 🐔🥚",
+                    "Knock knock!<br>Who's there?<br>Cluck.<br>Cluck who?<br>Cluck yeah, jokes are fun! 🐔😄",
+                    "Knock knock!<br>Who's there?<br>Why did the chicken?<br>Why did the chicken who?<br>Never mind, it already crossed! 🐔",
+                    "Knock knock!<br>Who's there?<br>Interrupting chicken.<br>Interrupting chi--<br>BAWK BAWK BAWK! 🐔😂"
+                ],
+                pun: [
+                    "Why did the chicken cross the road?<br>To get to the other side! 🐔",
+                    "What do you call a chicken staring at a lettuce?<br>Chicken sees a salad! 🐔🥗",
+                    "Why did the chicken join the band?<br>Because it had the drumsticks! 🐔🥁",
+                    "What's a chicken's favorite vegetable?<br>Egg-plant! 🐔🍆",
+                    "What did the chicken say to the egg?<br>You crack me up! 🥚",
+                    "Why did the chicken sit on the eggs?<br>Because it wanted some eggs-ercise! 🐔🥚"
+                ],
+                question: [
+                    "Why did the chicken go to the seance?<br>To talk to the other side! 🐔👻",
+                    "What's a chicken's favorite music?<br>Beak-box! 🐔🎶",
+                    "Why did the chicken wear a bowtie?<br>It was going to a fancy cluck-tion! 🐔🎩",
+                    "What's a chicken's favorite game?<br>Crossy road! 🐔🛣️",
+                    "Why do chickens never get lonely?<br>Because they have lots of chick friends! 🐔👯",
+                    "What did the chicken say when it was silly?<br>That's cock-amamie! 🐔"
+                ],
+                action: [
+                    "🐔 Flap your arms like chicken wings!<br>Now cluck like a chicken: Cluck cluck! ",
+                    "👟 Pretend to peck at the ground!<br>Say: I'm a chicken looking for worms! 🐔",
+                    "🐔 Pretend to lay an egg!<br>Say: Pop! Out comes a baby chick! 🐔🥚🐥",
+                    "🦵 Kick your legs like chicken feet!<br>Say: I'm dancing the chicken dance! 🐔💃",
+                    "🐔 Tuck your elbows and walk!<br>Waddle like a chicken: Bawk bawk bawk! 🐔",
+                    "🧠 Peck your head like a chicken!<br>Say: I'm pecking my brain! 🐔"
+                ],
+                riddle: [
+                    "What has feathers and flies, but is not a bird?<br>A chicken airplane! No, wait... actually, a chicken can't fly! 🐔",
+                    "What do you call a chicken with a dirty beak?<br>A peck of trouble! 🐔",
+                    "What has wings but can't fly?<br>A chicken! 🐔✈️",
+                    "What do you call a group of singing chickens?<br>A cluck choir! 🐔🎤",
+                    "What time is it when a chicken sits on the fence?<br>Eggs-actly 5 o'clock! 🐔🕐",
+                    "What does a chicken do when it sees you?<br>It chick-s you out! 🐔"
+                ],
+                story: [
+                    "A chicken went to the library and asked for a book on anti-gravity.<br>The librarian said: Sorry, those don't exist! 🐔📚",
+                    "Once there was a chicken who could play piano. Everyone called it... Beethooven! 🐔🎹",
+                    "A chicken went to school and the teacher said: 'You're so smart!'<br>The chicken said: 'Thanks, I'm no spring chicken!' 🐔📖",
+                    "Once there was a chicken who loved to swim. It was a real chick-en swimmer! 🐔🏊",
+                    "A chicken went to the ice cream shop and ordered vanilla.<br>The clerk said: Why vanilla? The chicken said: I like to play it safe! 🐔🍦",
+                    "Once there was a chicken who went to the gym. It was trying to get egg-stra strong! 🐔💪"
+                ]
+            },
+            cars: {
+                knockknock: [
+                    "Knock knock!<br>Who's there?<br>Boo.<br>Boo who?<br>Don't cry, it's just a car joke! 🚗",
+                    "Knock knock!<br>Who's there?<br>Car.<br>Car who?<br>Car you believe it's not butter? 🚗",
+                    "Knock knock!<br>Who's there?<br>Vroom.<br>Vroom who?<br>Vroom vroom, here comes a car! 🚗😄",
+                    "Knock knock!<br>Who's there?<br>Tire.<br>Tire who?<br>Tire-d of waiting, let's go! 🚗🛞",
+                    "Knock knock!<br>Who's there?<br>Broken pencil.<br>Broken pencil who?<br>Oh never mind, there's no point! 🚗🖊️",
+                    "Knock knock!<br>Who's there?<br>Jalopy.<br>Jalopy who?<br>Jalopy over and I'll tell you! 🚗"
+                ],
+                pun: [
+                    "Why did the car go to school?<br>To improve its drive! 🚗",
+                    "What do you call a car that tells jokes?<br>A comedi-car! 🚗",
+                    "Why did the car wear a hat?<br>Because it had a flat top! 🚗🎩",
+                    "What's a car's favorite food?<br>Car-rots! 🚗🥕",
+                    "What did the car say when it was tired?<br>I'm ex-HAUL-ed! 🚗",
+                    "Why did the car go to the comedy show?<br>It wanted to have a chassis good time! 🚗😂"
+                ],
+                question: [
+                    "Why did the car wear glasses?<br>Because it had blurry vision! 🚗👓",
+                    "What's a car's favorite drink?<br>Brake fluid! 🚗",
+                    "Why did the car go to the doctor?<br>It had a flat tire! 🚗👨‍⚕️",
+                    "What's a car's favorite music?<br>Rock and roll! 🚗🎸",
+                    "What do you call a car at the beach?<br>A convertible! 🚗🏖️",
+                    "Why did the toy car go to the doctor?<br>It had a bad case of racing stripes! 🚗"
+                ],
+                action: [
+                    "🚗 Pretend to drive a car!<br>Make vroom vroom sounds! ",
+                    "👉 Point to your eyes!<br>👈 Point to your ears!<br>Say: Eyes on the road, ears on the horn! 🚗",
+                    "🚗 Pretend to honk the horn!<br>Beep beep! 🚗📯",
+                    "🛞 Spin around like wheels!<br>Say: I'm rolling fast! 🚗💨",
+                    "🚗 Pretend to steer a wheel!<br>Say: Vroom, watch out! 🚗",
+                    "🚗 Shake your body like a bumpy ride!<br>Say: Bumpy road ahead! 🚗"
+                ],
+                riddle: [
+                    "What has four wheels and flies?<br>A garbage truck! 🚗",
+                    "What do you call a car that sings?<br>A car-tune! 🚗🎤",
+                    "What do you call a car that tells time?<br>A clock-mobile! 🚗🕰️",
+                    "What's the difference between a car and a comet?<br>One has wheels, one has a tail! 🚗⭐",
+                    "What did the car say when it was hungry?<br>I need some fuel! 🚗⛽",
+                    "What kind of car does a horse drive?<br>An Equine! 🐴🚗"
+                ],
+                story: [
+                    "A car went to the doctor and said: Doc, I have a flat tire!<br>The doctor said: That's just a puncture in time! 🚗👨‍⚕️",
+                    "Once there was a car that could talk. It said: I'm tired of being driven around! 🚗",
+                    "A car went to the park and said: 'I'm feeling a bit parked!' 🚗🏞️",
+                    "Once there was a car who loved to race. It was always in the fast lane! 🚗🏁",
+                    "A little red car went to the beach and had fun in the sand.<br>It said: I'm tired of being on the road! 🚗🏖️",
+                    "A brave blue car went skydiving!<br>The instructor said: You have guts! The car said: No, I have an engine! 🚗✈️"
+                ]
+            },
+            animals: {
+                knockknock: [
+                    "Knock knock!<br>Who's there?<br>Animal.<br>Animal who?<br>Animal crackers! 🐶",
+                    "Knock knock!<br>Who's there?<br>Boo.<br>Boo who?<br>Don't cry, it's just an animal joke! 🐶",
+                    "Knock knock!<br>Who's there?<br>Meow.<br>Meow who?<br>Meow it's time for fun! 🐱😺",
+                    "Knock knock!<br>Who's there?<br>Woof.<br>Woof who?<br>Woof, let's play! 🐶🐕",
+                    "Knock knock!<br>Who's there?<br>Cow.<br>Cow who?<br>Cow you let me in? 🐄",
+                    "Knock knock!<br>Who's there?<br>Lion.<br>Lion who?<br>Lion in the sun does make jokes funny! 🦁☀️"
+                ],
+                pun: [
+                    "Why did the animal go to school?<br>To become smarter! 🐶",
+                    "What do you call a bear with no teeth?<br>A gummy bear! 🐻",
+                    "Why did the cow go to space?<br>To see the moooon! 🐄🌙",
+                    "What's a cat's favorite color?<br>Purr-ple! 🐱💜",
+                    "Why do fish never share?<br>Because they're so shellfish! 🐟",
+                    "What did the pig say?<br>Snort snort... I'm having a hog-ical time! 🐷"
+                ],
+                question: [
+                    "Why did the animal bring a ladder?<br>To reach the high notes! 🐶",
+                    "What's an animal's favorite instrument?<br>The trom-bone! 🐶",
+                    "Why did the dog wear a sweater?<br>Because it was a little chilly-wawa! 🐶🧥",
+                    "What's an elephant's favorite game?<br>Squash! 🐘🎾",
+                    "What do you call a sleeping koala?<br>An otter-mate! 🐨",
+                    "What does a duck say to a magician?<br>Can you make my tail disappear? 🦆"
+                ],
+                action: [
+                    "🐶 Pretend to be a dog!<br>Wag your tail and bark: Woof woof! ",
+                    "🐱 Pretend to be a cat!<br>Meow and purr! ",
+                    "🐘 Pretend to have a trunk!<br>Spray water like an elephant! 🐘💦",
+                    "🐰 Hop like a bunny!<br>Say: Boing boing! 🐰",
+                    "🐻 Pretend to be a bear!<br>Growl: Roar roar! 🐻",
+                    "🦁 Pretend to be a lion!<br>Shake your mane and roar! 🦁"
+                ],
+                riddle: [
+                    "What has a head, a tail, is brown, and has no legs?<br>A penny! No... a snake? 🐍",
+                    "What do you call a sleeping bull?<br>A bulldozer! 🐂💤",
+                    "What has stripes and roars?<br>A tiger! 🐯",
+                    "What do you call a bear stuck in the rain?<br>A drizzly bear! 🐻🌧️",
+                    "What's a parrot's favorite game?<br>Repeat after me! 🦜",
+                    "What did the turtle say to the rabbit?<br>Slow and steady wins! 🐢"
+                ],
+                story: [
+                    "A dog went to the store and bought a newspaper.<br>The clerk said: That's a great pup-arazzi! 🐶📰",
+                    "Once there was a cat that could sing. Everyone called it... Purr-fect! 🐱🎤",
+                    "A monkey went to school and the teacher said: 'You're swinging it!' 🐒🎓",
+                    "Once there was a fish who could fly. Everyone called it... Flying fish! 🐟✈️",
+                    "A penguin went to the ice cream shop and said: I'll have vanilla!<br>The clerk said: With a cone? The penguin said: No, just ice cream! 🐧🍦",
+                    "A giraffe went to the gym and said: I'm working on my neck gains!<br>Everyone laughed! 🦒💪"
+                ]
+            },
+            food: {
+                knockknock: [
+                    "Knock knock!<br>Who's there?<br>Food.<br>Food who?<br>Food you doing? 🍕",
+                    "Knock knock!<br>Who's there?<br>Orange.<br>Orange who?<br>Orange you glad I didn't say banana? 🍊",
+                    "Knock knock!<br>Who's there?<br>Pizza.<br>Pizza who?<br>Pizza hurry, I'm hungry! 🍕😋",
+                    "Knock knock!<br>Who's there?<br>Apple.<br>Apple who?<br>Apple-solutely love jokes! 🍎😄",
+                    "Knock knock!<br>Who's there?<br>Lettuce.<br>Lettuce who?<br>Lettuce in, we're hungry! 🥬",
+                    "Knock knock!<br>Who's there?<br>Barber.<br>Barber who?<br>Barber-que chicken! 🍗🔥"
+                ],
+                pun: [
+                    "Why did the food go to school?<br>To get a little bread-ing! 🍞",
+                    "What do you call cheese that isn't yours?<br>Nacho cheese! 🧀",
+                    "Why did the tomato turn red?<br>Because it saw the salad dressing! 🍅",
+                    "What's a banana's favorite music?<br>Peel good! 🍌🎵",
+                    "Why did the cookie go to the doctor?<br>Because it felt crumby! 🍪",
+                    "What did the apple say to the orange?<br>Orange you glad we're fruits? 🍎🍊"
+                ],
+                question: [
+                    "Why did the food wear sunglasses?<br>Because it was a cool food! 🍕",
+                    "What's a food's favorite game?<br>Hide and steak! 🥩",
+                    "Why did the cookie go to the doctor?<br>It was feeling crumbly! 🍪👨‍⚕️",
+                    "What's a grape's favorite game?<br>Fruit ninja! 🍇",
+                    "What do you call a noisy pepper?<br>A pop-corn! 🌶️",
+                    "Why did the peanut go to the movies?<br>Because it wanted to see the shell-ebrity! 🥜⭐"
+                ],
+                action: [
+                    "🍎 Pretend to eat an apple!<br>Crunch crunch! ",
+                    "🍕 Pretend to eat pizza!<br>Yum yum! ",
+                    "🍦 Pretend to lick ice cream!<br>Slurp slurp! 🍦😋",
+                    "🍇 Pretend to squish grapes!<br>Splat! 🍇💥",
+                    "🍌 Pretend to peel a banana!<br>Peel peel! 🍌",
+                    "🍪 Pretend to bite a cookie!<br>Crunch and say: Delicious! 🍪😋"
+                ],
+                riddle: [
+                    "What has eyes but can't see?<br>Potatoes! 🥔",
+                    "What do you call a fake noodle?<br>An impasta! 🍝",
+                    "What has a peel but isn't a banana?<br>An orange! 🍊",
+                    "What do you call cheese that sings?<br>Mozart-arella! 🧀🎼",
+                    "What did the bacon say to the tomato?<br>Lettuce be friends! 🥓🍅",
+                    "What do you call a sleeping pizza?<br>Pie-jamas! 🍕😴"
+                ],
+                story: [
+                    "A pizza went to the party and everyone said: You're the life of the pie! 🍕🎉",
+                    "Once there was a sandwich that could talk. It said: I'm on a roll! 🥪",
+                    "A cookie went to school and said: 'I'm feeling chipper!' 🍪📚",
+                    "Once there was a cake that could dance. It was a real cake-walker! 🍰💃",
+                    "A silly spaghetti noodle went to the pool!<br>It said: I'm going for a swim! 🍝🏊",
+                    "A smart pea went to the library!<br>It said: I'm looking for a peas-on! 🟢📚"
+                ]
+            },
+            games: {
+                knockknock: [
+                    "Knock knock!<br>Who's there?<br>Game.<br>Game who?<br>Game over! 🎮",
+                    "Knock knock!<br>Who's there?<br>Interrupting cow.<br>Interrupting cow wh--<br>Moo! 🐄",
+                    "Knock knock!<br>Who's there?<br>Board.<br>Board who?<br>Board games are fun! 🎲😄",
+                    "Knock knock!<br>Who's there?<br>Play.<br>Play who?<br>Play time! 🎮⏰",
+                    "Knock knock!<br>Who's there?<br>Dice.<br>Dice who?<br>Dice are nice! 🎲",
+                    "Knock knock!<br>Who's there?<br>Winner.<br>Winner who?<br>Winner you say yes, we'll play! 🏆"
+                ],
+                pun: [
+                    "Why did the game go to school?<br>To level up! 🎮",
+                    "What do you call a game that tells jokes?<br>A pun-ctuation game! 🎮",
+                    "Why did the video game go to therapy?<br>It had too many issues! 🎮",
+                    "What's a board game's favorite drink?<br>Monopoly tea! 🎲☕",
+                    "Why did the card player go broke?<br>They lost their suite! 🃏💸",
+                    "What did the dice say to the player?<br>Stop rolling, you're making me dizzy! 🎲"
+                ],
+                question: [
+                    "Why did the game wear glasses?<br>To improve its vision! 🎮",
+                    "What's a game's favorite food?<br>Chip and dale! 🎮",
+                    "Why did the puzzle go to school?<br>To get smarter pieces! 🧩📚",
+                    "What's a doll's favorite game?<br>Barbie-que! 🪆",
+                    "What do dominoes always say?<br>Let's have a falling out! 🎮",
+                    "Why do video games make good friends?<br>They always level with you! 🎮"
+                ],
+                action: [
+                    "🎮 Pretend to play a game!<br>Press buttons: Beep boop! ",
+                    "🏆 Pretend to win!<br>Jump up and say: I won! ",
+                    "🎲 Roll dice like in a game!<br>Say: Lucky number 7! 🎲😊",
+                    "🃏 Pretend to shuffle cards!<br>Say: Pick a card! 🃏",
+                    "🎮 Pretend to hold a controller!<br>Say: I beat this level! 🎮🎉",
+                    "🏆 Do a victory dance!<br>Raise your arms and cheer! 🏆😄"
+                ],
+                riddle: [
+                    "What has keys but can't open locks?<br>A piano! 🎹",
+                    "What do you call a game that flies?<br>A plane game! ✈️",
+                    "What game is the sun playing?<br>It's shining! ☀️",
+                    "What has numbers but isn't math?<br>A lottery ticket! 🎲",
+                    "What do you call a board game for birds?<br>Fly-opoly! 🐦🎲",
+                    "What card game do cats like?<br>Persian card games! 🐱🃏"
+                ],
+                story: [
+                    "A video game went to the doctor and said: Doc, I have a virus!<br>The doctor said: That's just a bug in the system! 🎮👨‍⚕️",
+                    "Once there was a board game that could talk. It said: Let's play! 🃏",
+                    "A puzzle went to the party and said: 'I'm feeling a bit puzzled!' 🧩🎉",
+                    "Once there was a toy that could sing. It was a real play-tune! 🧸🎵",
+                    "A dice went to the casino and said: I'm feeling lucky!<br>The dealer said: That's what they all say! 🎲💰",
+                    "A board game went to the gym!<br>It said: I need to get in shape for game night! 🎲💪"
+                ]
+            },
+            weather: {
+                knockknock: [
+                    "Knock knock!<br>Who's there?<br>Weather.<br>Weather who?<br>Weather you like it or not, here's a joke! 🌈",
+                    "Knock knock!<br>Who's there?<br>Rain.<br>Rain who?<br>Rain or shine, I'm here! 🌧️",
+                    "Knock knock!<br>Who's there?<br>Snow.<br>Snow who?<br>Snow joke, it's cold! ❄️😄",
+                    "Knock knock!<br>Who's there?<br>Wind.<br>Wind who?<br>Wind you open the door? 🌬️🚪",
+                    "Knock knock!<br>Who's there?<br>Thunder.<br>Thunder who?<br>Thunder the clouds, there's sun! ⛈️☀️",
+                    "Knock knock!<br>Who's there?<br>Frost.<br>Frost who?<br>Frost-y the snowman! ❄️"
+                ],
+                pun: [
+                    "Why did the weather go to school?<br>To become a little cloud-er! ☁️",
+                    "What do you call a wet bear?<br>A drizzly bear! 🐻🌧️",
+                    "Why did the sun go to school?<br>To get a little brighter! ☀️📚",
+                    "What's a cloud's favorite game?<br>Hide and sky! ☁️😄",
+                    "Why did the lightning go to school?<br>To learn how to conduct itself! ⚡",
+                    "What do you call a wet dog on a cold day?<br>A chili dog! 🌧️🐕"
+                ],
+                question: [
+                    "Why did the weather wear a coat?<br>Because it was chilly! ❄️",
+                    "What's the weather's favorite music?<br>Rock and roll! ⛰️",
+                    "Why did the rain go to school?<br>To become a little drop smarter! 🌧️📖",
+                    "What's the wind's favorite food?<br>Air-ies! 🌬️🍪",
+                    "What do rainbows drink?<br>Fruit punch! 🌈🥤",
+                    "What's the difference between weather and climate?<br>You can't weather a tree, but you can climate! 🌳☀️"
+                ],
+                action: [
+                    "🌧️ Pretend it's raining!<br>Make pitter patter sounds! ",
+                    "☀️ Pretend it's sunny!<br>Smile and say: Ahh, warm! ",
+                    "❄️ Pretend to shiver!<br>Say: Brrr, it's cold! ❄️🥶",
+                    "🌈 Pretend to find a rainbow!<br>Say: Look at the colors! 🌈😍",
+                    "⚡ Pretend to be thunder!<br>Clap your hands loudly! ⚡",
+                    "☁️ Float around like a cloud!<br>Say: I'm floating through the sky! ☁️"
+                ],
+                riddle: [
+                    "What can you catch but not throw?<br>A cold! ❄️",
+                    "What has a neck but no head?<br>A bottle! Or a cloud? ☁️",
+                    "What falls but never gets hurt?<br>Rain! 🌧️😊",
+                    "What do you call a sunny day with clouds?<br>A partly cloudy day! ☁️☀️",
+                    "What has a tail but isn't an animal?<br>A comet! ☄️",
+                    "What shines but on rainy days?<br>The sun is sleeping! ☀️🌧️"
+                ],
+                story: [
+                    "The sun went to school and the teacher said: You're too bright!<br>The sun said: That's just my sunny disposition! ☀️📚",
+                    "Once there was a cloud that could sing. Everyone called it... A thunder-hit! ☁️🎤",
+                    "The rain went to the party and said: 'I'm feeling a bit drippy!' 🌧️🎉",
+                    "Once there was a snowman who could talk. He said: 'I'm feeling a bit melty!' ❄️🗣️",
+                    "A rainbow went to the art class!<br>The teacher said: Wow, you're very colorful! 🌈🎨",
+                    "A snowflake went to the beach!<br>It said: I'm going to chill out! ❄️🏖️"
+                ]
+            },
+            dinosaurs: {
+                knockknock: [
+                    "Knock knock!<br>Who's there?<br>Dino.<br>Dino who?<br>Dino-mite joke! 🦖",
+                    "Knock knock!<br>Who's there?<br>Boo.<br>Boo who?<br>Don't cry, it's just a dino-saur! 🦖",
+                    "Knock knock!<br>Who's there?<br>Roar.<br>Roar who?<br>Roar-some to meet you! 🦖😄",
+                    "Knock knock!<br>Who's there?<br>Tail.<br>Tail who?<br>Tail you a dino story! 🦖📖",
+                    "Knock knock!<br>Who's there?<br>Dino-Might.<br>Dino-Might who?<br>Dino-Might be the funniest joke! 🦖",
+                    "Knock knock!<br>Who's there?<br>Extinct.<br>Extinct who?<br>Extinct-tion level jokes! 🦖"
+                ],
+                pun: [
+                    "Why did the dinosaur go to school?<br>To become a smarty-pants! 🦖",
+                    "What do you call a dinosaur with an extensive vocabulary?<br>A thesaurus! 🦖",
+                    "Why did the dinosaur wear a bowtie?<br>Because it was a dino-mite dresser! 🦖🎩",
+                    "What's a dinosaur's favorite drink?<br>Jurassic juice! 🦖🧃",
+                    "Why did the dinosaur go to the bank?<br>To get some dino-saurs! 🦖💰",
+                    "What did the dinosaur call his dog?<br>Tyrannosaurus Paws! 🦖🐾"
+                ],
+                question: [
+                    "Why did the dinosaur wear glasses?<br>Because it had dino-sight! 🦖👓",
+                    "What's a dinosaur's favorite game?<br>Hide and dino-seek! 🦖",
+                    "Why did the dinosaur bring a ladder?<br>To reach the high branches! 🦖🪜",
+                    "What's a dinosaur's favorite music?<br>Rock and dino-roll! 🦖🎸",
+                    "What did the T-Rex say to the other dinosaurs?<br>I'm dino-mite! 🦖",
+                    "Why did the dinosaur wear red pants?<br>To hide in the strawberry patch! 🦖🍓"
+                ],
+                action: [
+                    "🦖 Pretend to be a T-Rex!<br>Flap your arms and roar: Rawr! ",
+                    "🦕 Pretend to be a long-neck!<br>Stretch your neck high! ",
+                    "🦖 Pretend to stomp like a dino!<br>Say: Boom boom! 🦖💥",
+                    "🦕 Pretend to eat leaves!<br>Munch munch! 🦕🍃",
+                    "🦖 Swing your tail side to side!<br>Say: Swish swish! 🦖",
+                    "🦖 Pretend to lay a dinosaur egg!<br>Say: Here comes a baby dino! 🦖🥚"
+                ],
+                riddle: [
+                    "What do you call a dinosaur that writes?<br>A dino-writer! 🦖✍️",
+                    "What has a long neck and eats leaves?<br>A giraffe! No, a brachiosaurus! 🦕",
+                    "What has spikes and roars?<br>A stegosaurus! 🦕🦖",
+                    "What do you call a sleeping dinosaur?<br>A dino-snore! 🦖😴",
+                    "What's a dinosaur's favorite dessert?<br>Tricera-tops with ice cream! 🦖🍦",
+                    "What did the dinosaur say when he crashed?<br>Ouch, that Stego-hurt! 🦖💥"
+                ],
+                story: [
+                    "A dinosaur went to the store and bought a tie.<br>The clerk said: That's a dino-mite accessory! 🦖👔",
+                    "Once there was a dinosaur that could fly. Everyone called it... A pterodactyl! 🦅",
+                    "A T-Rex went to school and said: 'I'm feeling a bit bitey!' 🦖📚",
+                    "Once there was a dinosaur who loved to swim. It was a real dino-swimmer! 🦖🏊",
+                    "A vegetarian dinosaur went to the salad bar!<br>It said: This is absolutely dino-mite! 🦕🥗",
+                    "A tiny dinosaur went to the gym!<br>The trainer said: Don't worry, you'll be dino-MIGHT soon! 🦖💪"
+                ]
+            }
+        };
+        
+        // JavaScript logic
+        var topicDisplay = document.getElementById('topicDisplay');
+        var typeDisplay = document.getElementById('typeDisplay');
+        var shootBtn = document.getElementById('shootBtn');
+        var jokeDisplay = document.getElementById('jokeDisplay');
+        var pipeContainer = document.getElementById('pipeContainer');
+        var speakerBtn = document.getElementById('speakerBtn');
+        var currentJokeText = '';
+        
+        function updateDisplays() {
+            topicDisplay.textContent = 'Selected Topic: ' + topics[currentTopic].name;
+            typeDisplay.textContent = 'Selected Type: ' + types[currentType].name;
+        }
+        
+        shootBtn.addEventListener('click', function() {
+            var topicKey = topics[currentTopic].key;
+            var typeKey = types[currentType].key;
+            var jokeList = jokes[topicKey][typeKey];
+            var randomJoke = jokeList[Math.floor(Math.random() * jokeList.length)];
+            
+            // Create joke paper
+            var jokePaper = document.createElement('div');
+            jokePaper.className = 'joke-paper';
+            jokePaper.innerHTML = randomJoke;
+            pipeContainer.appendChild(jokePaper);
+            
+            // Animate
+            setTimeout(function() {
+                jokePaper.classList.add('shooting');
+            }, 10);
+            
+            // Display joke
+            setTimeout(function() {
+                jokeDisplay.innerHTML = randomJoke;
+                currentJokeText = randomJoke;
+                jokePaper.remove();
+                speakerBtn.classList.add('visible');
+            }, 3000);
+        });
+        
+        // Text-to-speech functionality
+        speakerBtn.addEventListener('click', function() {
+            if ('speechSynthesis' in window) {
+                // Stop any ongoing speech
+                window.speechSynthesis.cancel();
+                
+                // Remove HTML tags and decode HTML entities for cleaner speech
+                var textToSpeak = currentJokeText
+                    .replace(/<br>/g, ' ')
+                    .replace(/<[^>]*>/g, '')
+                    .replace(/🚽|🐔|🚗|🐶|🍕|🎮|🌈|🦖|💦|🥚|🎩|🔑|👻|🎶|🛣️|👯|🥗|🥁|🍆|💃|🐕|👓|⚕️|🎸|🏖️|🛞|💨|📯|🎤|🕰️|⭐|⛽|🐴|🐂|💤|🐯|🦁|🌧️|🐨|🦆|🐘|🎾|🐰|🐻|🐍|📰|🎓|🐒|🐟|✈️|🐧|🍦|🦒|💪|🍊|😋|🍎|😄|🥬|🍗|🔥|🍞|🧀|🍅|🍌|🎵|🍪|🥩|🌶️|🥜|🍇|💥|🍝|🎼|🥓|😴|🟢|📚|🍰|🏊|🎮|🐄|🎲|☕|💸|🃏|🧩|🎉|🧸|💰|⛈️|☀️|❄️|🥶|🌬️|🍪|🥤|🌳|⚡|☁️|😍|☄️|🗣️|🎨|👔|🦅|🍓|💥|🥚|🍦|✍️|🪜|🐾|🥗/g, '')
+                    .trim();
+                
+                if (textToSpeak) {
+                    var utterance = new SpeechSynthesisUtterance(textToSpeak);
+                    utterance.rate = 0.9; // Slightly slower for kids
+                    utterance.pitch = 1.1; // Slightly higher pitch for fun
+                    
+                    speakerBtn.classList.add('speaking');
+                    
+                    utterance.onend = function() {
+                        speakerBtn.classList.remove('speaking');
+                    };
+                    
+                    window.speechSynthesis.speak(utterance);
+                }
+            } else {
+                alert('Sorry, your browser does not support text-to-speech!');
+            }
+        });
+        
+        createButtons('topicButtons', topics, topicColors, (index) => { currentTopic = index; updateDisplays(); updateSelected(); });
+        createButtons('typeButtons', types, typeColors, (index) => { currentType = index; updateDisplays(); updateSelected(); });
+        
+        updateDisplays();
+        updateSelected();
+    </script>
+</body>
+</html>
